@@ -1,0 +1,36 @@
+// Add a new route to retrieve data from the database
+app.get("/get/students", async (req, res) => {
+  try {
+    const selectQuery = `
+          SELECT id, student_id, student_name, ac_num
+          FROM students`;
+
+    const students = await db.any(selectQuery);
+
+    res.status(200).json(students);
+  } catch (error) {
+    console.error("Error:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while fetching student data." });
+  }
+});
+
+
+CREATE TABLE students (
+  id serial PRIMARY KEY,
+  student_name VARCHAR(255) NOT NULL,
+  student_id INT NOT NULL
+);
+ALTER TABLE students ADD COLUMN AC_num VARCHAR(255);
+CREATE OR REPLACE FUNCTION generate_ac_num()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.AC_num := TO_CHAR(NOW(), 'YYYYMMDDHH24MISS') || '-' || substr(md5(random()::text), 1, 4);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER ac_num_trigger
+BEFORE INSERT ON students
+FOR EACH ROW
+EXECUTE FUNCTION generate_ac_num();
